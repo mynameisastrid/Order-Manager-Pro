@@ -583,6 +583,10 @@ function renderTable() {
         // Actions
         const tdA = document.createElement('td');
         const actions = document.createElement('div'); actions.className = 'row-actions';
+        const viewBtn = document.createElement('button'); viewBtn.className = 'btn-icon'; viewBtn.title = 'Visualizar';
+        viewBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+        viewBtn.addEventListener('click', () => viewNote(note.id));
+
         const editBtn = document.createElement('button'); editBtn.className = 'btn-icon'; editBtn.title = 'Editar';
         editBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
         editBtn.addEventListener('click', () => editNote(note.id));
@@ -592,12 +596,92 @@ function renderTable() {
         const delBtn = document.createElement('button'); delBtn.className = 'btn-icon danger'; delBtn.title = 'Apagar';
         delBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
         delBtn.addEventListener('click', () => confirmDelete(note.id));
-        actions.append(editBtn, copyBtn, delBtn); tdA.appendChild(actions);
+        actions.append(viewBtn, editBtn, copyBtn, delBtn); tdA.appendChild(actions);
 
         tr.append(tdCb, tdS, tdP, tdSo, tdR, tdC, tdF, tdD, tdA);
         frag.appendChild(tr);
     });
     tbody.appendChild(frag);
+}
+
+// ── VIEW NOTE ──────────────────────────────────────────────────────
+function viewNote(id) {
+    const note = notes.find(n => n.id === id);
+    if (!note) return;
+
+    // Tags (status + PO + SO)
+    const tagsEl = document.getElementById('viewTags');
+    tagsEl.innerHTML = `
+        <span class="status-pill pill-${note.status || 'pending'}">${getStatusLabel(note.status)}</span>
+        <span class="mono-tag po" style="cursor:default">${note.po}</span>
+        <span class="mono-tag so" style="cursor:default">${note.so}</span>`;
+
+    // Dates
+    document.getElementById('viewCreatedAt').textContent =
+        `Criado ${formatDateDisplay(note.createdAt)}` +
+        (note.updatedAt && note.updatedAt !== note.createdAt ? ` · Editado ${formatDateDisplay(note.updatedAt)}` : '');
+
+    // Meta grid
+    const metaEl = document.getElementById('viewMeta');
+    const due = note.dueDate ? formatDateDisplay(note.dueDate) : '—';
+    const rep = note.rep && note.rep !== '-' ? note.rep : '—';
+    metaEl.innerHTML = `
+        <div class="view-meta-item"><div class="view-meta-label">Representante</div><div class="view-meta-value">${rep}</div></div>
+        <div class="view-meta-item"><div class="view-meta-label">Data de Entrega</div><div class="view-meta-value">${due}</div></div>`;
+
+    // Content
+    const contentSection = document.getElementById('viewContentSection');
+    const contentEl = document.getElementById('viewContent');
+    if (note.content) {
+        contentEl.textContent = note.content;
+        contentSection.style.display = 'block';
+    } else {
+        contentSection.style.display = 'none';
+    }
+
+    // Files
+    const filesSection = document.getElementById('viewFilesSection');
+    const fileList = document.getElementById('viewFileList');
+    const files = note.files || [];
+    if (files.length > 0) {
+        document.getElementById('viewFilesTitle').textContent = `Arquivos (${files.length})`;
+        fileList.innerHTML = '';
+        files.forEach(f => {
+            const ext  = f.name.split('.').pop().toLowerCase();
+            const isViewable = ['pdf','png','jpg','jpeg','gif','svg','webp','bmp','txt','mp4','mp3'].includes(ext);
+            const item = document.createElement('div');
+            item.className = 'view-file-item';
+            item.innerHTML = `
+                <span class="view-file-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                        <polyline points="13 2 13 9 20 9"/>
+                    </svg>
+                </span>
+                <span class="view-file-name" title="${f.name}">${f.name}</span>
+                <div class="view-file-actions">
+                    ${isViewable ? `<button class="view-file-btn open" onclick="openFile('${encodeURIComponent(f.fname)}')">Abrir</button>` : ''}
+                    <button class="view-file-btn" onclick="downloadFile('${f.fname}','${f.name.replace(/'/g,"\\'")}')">Baixar</button>
+                </div>`;
+            fileList.appendChild(item);
+        });
+        filesSection.style.display = 'block';
+    } else {
+        filesSection.style.display = 'none';
+    }
+
+    // Edit button
+    document.getElementById('viewEditBtn').onclick = () => { closeViewModal(); editNote(id); };
+
+    document.getElementById('viewModal').classList.add('show');
+}
+
+function closeViewModal() {
+    document.getElementById('viewModal').classList.remove('show');
+}
+
+function openFile(encodedFname) {
+    window.open('/api/files/' + encodedFname, '_blank');
 }
 
 // ── SEARCH HIGHLIGHT ───────────────────────────────────────────────

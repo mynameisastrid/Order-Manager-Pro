@@ -211,6 +211,37 @@
     </div>
 </div>
 
+<!-- VIEW MODAL -->
+<div class="modal-overlay" id="viewModal" onclick="if(event.target===this)closeViewModal()">
+    <div class="modal">
+        <div class="view-header">
+            <div class="view-header-left">
+                <div class="view-tags" id="viewTags"></div>
+                <div class="view-title" id="viewCreatedAt"></div>
+            </div>
+            <button class="drawer-close" onclick="closeViewModal()">✕</button>
+        </div>
+        <div class="view-body">
+            <div class="view-meta-grid" id="viewMeta"></div>
+            <div id="viewContentSection">
+                <div class="view-section-title">Notas / Comentários</div>
+                <div class="view-content-box" id="viewContent"></div>
+            </div>
+            <div id="viewFilesSection">
+                <div class="view-section-title" id="viewFilesTitle">Arquivos</div>
+                <div class="view-file-list" id="viewFileList"></div>
+            </div>
+        </div>
+        <div class="view-footer">
+            <button class="btn btn-ghost" onclick="closeViewModal()">Fechar</button>
+            <button class="btn btn-primary" id="viewEditBtn">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Editar
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- DELETE MODAL -->
 <div class="modal-overlay" id="confirmModal">
     <div class="modal">
