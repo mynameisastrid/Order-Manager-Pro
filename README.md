@@ -1,6 +1,16 @@
 # Order Manager Pro
 
-Gerenciador de pedidos local. Todos os dados ficam salvos em uma pasta do seu HD — sem servidor, sem nuvem.
+Gerenciador de pedidos local. Todos os dados ficam salvos em disco na própria pasta do app — sem servidor externo, sem nuvem, sem instalação.
+
+---
+
+## Como abrir
+
+Dê duplo clique em **`Iniciar.vbs`**.
+
+O script inicia um servidor local em segundo plano (sem janela visível) e abre o app no browser em `http://localhost:8080`. Funciona com **qualquer browser** (Chrome, Firefox, Edge, etc.).
+
+> Se abrir o `index.html` diretamente, um banner amarelo aparece avisando que o servidor não está ativo e os dados não serão salvos.
 
 ---
 
@@ -8,39 +18,43 @@ Gerenciador de pedidos local. Todos os dados ficam salvos em uma pasta do seu HD
 
 ```
 Order Manager Pro/
-├── index.html      ← Abre no browser
-├── app.js          ← Toda a lógica da aplicação
+├── index.html      ← Interface do app
+├── app.js          ← Lógica da aplicação
 ├── app.css         ← Estilos
-└── README.md       ← Este arquivo
+├── server.ps1      ← Servidor HTTP local (PowerShell)
+├── Iniciar.vbs     ← Lançador — duplo clique para abrir o app
+├── README.md       ← Esta documentação
+└── data/           ← Criada automaticamente na primeira abertura
+    ├── orders.json     ← Todos os pedidos
+    └── files/          ← Arquivos anexados aos pedidos
 ```
 
-A pasta de dados (escolhida por você na primeira abertura) terá esta estrutura:
-
-```
-Sua Pasta de Dados/
-├── orders.json     ← Todos os pedidos em JSON legível
-└── files/
-    ├── file_uuid__documento.pdf
-    └── file_uuid__imagem.png
-```
+A pasta `data/` é criada automaticamente pelo servidor na primeira vez que o app é aberto. Não é necessário criar nada manualmente.
 
 ---
 
-## Como usar
+## Como funciona
 
-### Primeira abertura
-1. Abra `index.html` no **Chrome** ou **Edge**
-2. Um modal aparecerá pedindo para escolher uma pasta
-3. Selecione ou crie uma pasta (ex: `Order Manager Data`) em qualquer lugar do seu HD
-4. Clique em **Selecionar pasta** no diálogo do sistema
+O `Iniciar.vbs` executa o `server.ps1` em segundo plano via PowerShell. O servidor:
 
-### Aberturas seguintes
-- O browser pedirá uma confirmação rápida: **"Permitir acesso à pasta X?"**
-- Clique em **Permitir** — isso é uma limitação de segurança do browser, não tem como evitar
+- Serve os arquivos estáticos (`index.html`, `app.js`, `app.css`) em `localhost:8080`
+- Expõe uma API REST local para leitura e escrita dos dados em disco
+- Se já estiver rodando (ex: clicou no VBS duas vezes), detecta a porta ocupada e encerra silenciosamente — o browser abre normalmente
 
-### Trocar a pasta
-- Clique no badge com o nome da pasta no canto superior direito do header
-- Escolha outra pasta (os dados da pasta antiga não são movidos automaticamente)
+O servidor para automaticamente quando o computador é reiniciado. Para parar manualmente, encerre o processo `powershell.exe` pelo Gerenciador de Tarefas.
+
+---
+
+## API REST local
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/api/orders` | Retorna todos os pedidos (`orders.json`) |
+| `POST` | `/api/orders` | Salva a lista completa de pedidos |
+| `GET` | `/api/files/:fname` | Download de um arquivo anexado |
+| `POST` | `/api/files/:fname` | Upload de um arquivo |
+| `DELETE` | `/api/files/:fname` | Remove um arquivo |
+| `DELETE` | `/api/files` | Remove todos os arquivos |
 
 ---
 
@@ -48,34 +62,23 @@ Sua Pasta de Dados/
 
 | Ação | Como |
 |---|---|
-| Novo pedido | Botão **Novo Pedido** ou `Ctrl+N` |
+| Novo pedido | Botão **Novo Pedido** |
 | Salvar formulário | Botão **Salvar** ou `Ctrl+Enter` |
 | Fechar drawer | `Esc` |
 | Avançar status | Clique no pill de status na tabela |
-| Copiar PO/SO | Clique no número (PO ou SO) na tabela |
+| Copiar PO / SO | Clique no número na tabela |
 | Download de arquivo | Clique no badge verde de arquivos |
 | Seleção múltipla | Checkboxes na tabela |
 | Alterar status em lote | Selecione pedidos → barra inferior |
+| Apagar em lote | Selecione pedidos → **Apagar selecionados** |
+| Desfazer exclusão | Botão **Desfazer** no toast (5 segundos) |
 | Exportar backup JSON | Botão **Backup** (inclui arquivos em base64) |
 | Exportar CSV | Botão **CSV** |
 | Restaurar backup | Botão **Restaurar** → selecione o `.json` exportado |
-| Filtrar por status | Abas no topo da tabela ou cards de estatísticas |
+| Filtrar por status | Abas ou cards de estatísticas |
 | Filtrar por data | Campos "De / Até" na toolbar |
-| Buscar | Campo de busca no header (PO, SO, rep, conteúdo, arquivos) |
-| Ordenar | Clique nos cabeçalhos de coluna |
-
----
-
-## Compatibilidade
-
-| Browser | Suporte |
-|---|---|
-| Chrome 86+ | ✅ Completo |
-| Edge 86+ | ✅ Completo |
-| Firefox | ❌ Não suporta File System Access API |
-| Safari | ❌ Não suporta File System Access API |
-
-> **Nota:** O app precisa ser aberto via `index.html` no browser, não pode ser servido de `file://` para alguns recursos funcionarem. Se tiver problemas, arraste o arquivo para o browser ou use um servidor local simples.
+| Buscar | Campo de busca no header |
+| Ordenar colunas | Clique nos cabeçalhos da tabela |
 
 ---
 
@@ -108,6 +111,13 @@ Sua Pasta de Dados/
 
 ## Backup e migração
 
-- O botão **Backup** gera um `.json` com todos os pedidos **e** arquivos embutidos em base64
-- Para migrar para outra máquina: copie a pasta de dados **e** o `Order Manager Pro/` inteiro, abra o `index.html` e escolha a mesma pasta
-- Ou use **Restaurar** com o arquivo de backup para recriar tudo do zero
+- **Backup:** botão **Backup** gera um `.json` com todos os pedidos e arquivos embutidos em base64 — pode ser guardado em qualquer lugar
+- **Restaurar:** botão **Restaurar** reimporta o `.json` de backup, recriando pedidos e arquivos
+- **Migrar para outra máquina:** copie a pasta `Order Manager Pro/` inteira (incluindo `data/`) para o novo computador e abra o `Iniciar.vbs`
+
+---
+
+## Requisitos
+
+- Windows 10 ou 11 (PowerShell já incluso)
+- Qualquer browser moderno
