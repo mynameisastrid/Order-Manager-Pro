@@ -64,10 +64,14 @@ O servidor para automaticamente quando o computador é reiniciado. Para parar ma
 |---|---|
 | Novo pedido | Botão **Novo Pedido** |
 | Salvar formulário | Botão **Salvar** ou `Ctrl+Enter` |
-| Fechar drawer | `Esc` |
+| Fechar drawer / modal | `Esc` ou clicar fora |
+| Visualizar nota | Ícone de olho na linha → abre painel de detalhes |
+| Editar nota | Ícone de lápis na linha (ou botão **Editar** no painel de detalhes) |
+| Duplicar nota | Ícone de cópia na linha |
 | Avançar status | Clique no pill de status na tabela |
 | Copiar PO / SO | Clique no número na tabela |
-| Download de arquivo | Clique no badge verde de arquivos |
+| Abrir arquivo anexado | Painel de detalhes → botão **Abrir** (renderiza no browser) |
+| Baixar arquivo anexado | Painel de detalhes → botão **Baixar** |
 | Seleção múltipla | Checkboxes na tabela |
 | Alterar status em lote | Selecione pedidos → barra inferior |
 | Apagar em lote | Selecione pedidos → **Apagar selecionados** |
@@ -79,6 +83,20 @@ O servidor para automaticamente quando o computador é reiniciado. Para parar ma
 | Filtrar por data | Campos "De / Até" na toolbar |
 | Buscar | Campo de busca no header |
 | Ordenar colunas | Clique nos cabeçalhos da tabela |
+
+---
+
+## Painel de detalhes
+
+Ao clicar no ícone de olho em qualquer linha da tabela, um modal exibe todas as informações da nota:
+
+- Status, PO, SO, Representante e Data de Entrega
+- Conteúdo completo das notas
+- Lista de arquivos anexados com dois botões por arquivo:
+  - **Abrir** — abre o arquivo diretamente no browser em nova aba (suportado: PDF, imagens, vídeo, áudio, texto)
+  - **Baixar** — faz o download do arquivo
+
+O botão **Editar** no rodapé do modal abre o drawer de edição diretamente.
 
 ---
 
