@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Manager</title>
+    <link rel="stylesheet" href="app.css">
+    <style>
+        .offline-banner {
+            display: none; align-items: center; justify-content: center; gap: 10px;
+            background: var(--amber-gl); border-bottom: 1px solid rgba(245,158,11,.25);
+            padding: 10px 20px; font-size: 0.82rem; color: var(--amber);
+        }
+        .offline-banner b { color: var(--t1); }
+    </style>
+</head>
+<body>
+
+<!-- Banner exibido apenas quando abre sem o Iniciar.vbs -->
+<div id="offlineBanner" class="offline-banner">
+    ⚠ Servidor não detectado — abra via <b>Iniciar.vbs</b> para salvar dados no disco.
+</div>
+
+<div id="drawerBackdrop" class="drawer-backdrop" onclick="closeDrawer()"></div>
+
+<!-- FORM DRAWER -->
+<div id="formDrawer" class="drawer">
+    <div class="drawer-header">
+        <div>
+            <div class="drawer-title" id="drawerTitle">Novo Pedido</div>
+            <div class="drawer-subtitle" id="drawerSubtitle">Preencha os dados abaixo</div>
+        </div>
+        <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    </div>
+
+    <div class="drawer-body">
+        <input type="hidden" id="noteId">
+
+        <div class="form-grid-2">
+            <div class="field"><label>PO Number</label><input type="text" id="poInput" placeholder="Ex: 4500123" oninput="saveDraft()"></div>
+            <div class="field"><label>SO Number</label><input type="text" id="soInput" placeholder="Ex: 800567" oninput="saveDraft()"></div>
+        </div>
+
+        <div class="form-grid-2">
+            <div class="field">
+                <label>Status</label>
+                <select id="statusInput" onchange="saveDraft()">
+                    <option value="pending">🟡 Pendente</option>
+                    <option value="progress">🔵 Em Andamento</option>
+                    <option value="done">🟢 Concluído</option>
+                </select>
+            </div>
+            <div class="field"><label>Sales Representative</label><input type="text" id="repInput" placeholder="Nome do Rep" oninput="saveDraft()"></div>
+        </div>
+
+        <div class="form-grid-2">
+            <div class="field">
+                <label>Data de Entrega</label>
+                <input type="date" id="dueDateInput" oninput="saveDraft()">
+            </div>
+            <div class="field" style="display:flex;align-items:flex-end;">
+                <div style="font-size:0.75rem;color:var(--t3);padding-bottom:4px;">Campo opcional — usado para alertas de prazo.</div>
+            </div>
+        </div>
+
+        <div class="field"><label>Notas / Comentários</label><textarea id="noteInput" placeholder="Detalhes, observações, instruções..." oninput="saveDraft()"></textarea></div>
+
+        <div class="drop-zone" id="dropZone">
+            <input type="file" id="fileInput" multiple onchange="handleFileSelect(this.files)">
+            <div class="drop-zone-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+            <div class="drop-zone-text"><b>Clique para adicionar</b> ou arraste arquivos aqui</div>
+        </div>
+
+        <div class="file-list" id="fileListContainer"></div>
+    </div>
+
+    <div class="drawer-footer">
+        <span class="draft-badge" id="draftBadge">rascunho salvo</span>
+        <span class="shortcut-hint">Ctrl+Enter salva · Esc fecha</span>
+        <button class="btn btn-ghost" id="btnCancelEdit" onclick="closeDrawer()" style="display:none;">Cancelar</button>
+        <button class="btn btn-primary" id="mainBtn" onclick="handleMainAction()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span id="btnText">Salvar Pedido</span>
+        </button>
+    </div>
+</div>
+
+<!-- FILES POPOVER -->
+<div id="filesPopover" class="files-popover"></div>
+
+<!-- BULK ACTION BAR -->
+<div id="bulkBar" class="bulk-bar">
+    <span class="bulk-count" id="bulkCount">0 selecionados</span>
+    <div class="bulk-sep"></div>
+    <select class="bulk-status-select" id="bulkStatusSelect">
+        <option value="">Alterar status para…</option>
+        <option value="pending">🟡 Pendente</option>
+        <option value="progress">🔵 Em Andamento</option>
+        <option value="done">🟢 Concluído</option>
+    </select>
+    <button class="btn btn-ghost" style="font-size:.8rem;padding:7px 12px;" onclick="applyBulkStatus()">Aplicar</button>
+    <div class="bulk-sep"></div>
+    <button class="btn btn-danger" style="font-size:.8rem;padding:7px 12px;" onclick="bulkDelete()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        Apagar selecionados
+    </button>
+    <button class="btn btn-ghost" style="font-size:.8rem;padding:7px 12px;" onclick="clearSelection()">Cancelar</button>
+</div>
+
+<!-- MAIN -->
+<div class="app">
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+            <div class="logo-text">Order <span>Manager</span></div>
+        </div>
+
+        <div class="header-search">
+            <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="searchInput" class="search-input" placeholder="Buscar PO, SO, rep, conteúdo…">
+            <button id="clearSearchBtn" class="search-clear" onclick="clearSearch()">✕</button>
+        </div>
+
+        <div class="header-actions">
+            <input type="file" id="importInput" style="display:none" accept=".json" onchange="importData(this)">
+            <button class="btn btn-ghost" onclick="document.getElementById('importInput').click()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Restaurar
+            </button>
+            <button class="btn btn-ghost" id="exportBtn" onclick="exportData()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Backup
+            </button>
+            <button class="btn btn-ghost" onclick="exportCSV()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                CSV
+            </button>
+            <button class="btn btn-primary" onclick="openDrawer()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Novo Pedido
+            </button>
+        </div>
+    </header>
+
+    <div class="stats-grid">
+        <div class="stat-card total active-filter" onclick="setTabFilter('all')" id="card-all">
+            <div class="stat-label">Total</div>
+            <div class="stat-value" id="statTotal">0</div>
+            <div class="stat-icon">📋</div>
+        </div>
+        <div class="stat-card pending" onclick="setTabFilter('pending')" id="card-pending">
+            <div class="stat-label">Pendentes</div>
+            <div class="stat-value" id="statPending">0</div>
+            <div class="stat-icon">⏳</div>
+        </div>
+        <div class="stat-card progress" onclick="setTabFilter('progress')" id="card-progress">
+            <div class="stat-label">Em Andamento</div>
+            <div class="stat-value" id="statProgress">0</div>
+            <div class="stat-icon">⚡</div>
+        </div>
+        <div class="stat-card done" onclick="setTabFilter('done')" id="card-done">
+            <div class="stat-label">Concluídos</div>
+            <div class="stat-value" id="statDone">0</div>
+            <div class="stat-icon">✅</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-toolbar">
+            <div class="filter-tabs">
+                <button class="filter-tab active" onclick="setTabFilter('all')"      id="tab-all">Todos</button>
+                <button class="filter-tab"        onclick="setTabFilter('pending')"  id="tab-pending">Pendentes</button>
+                <button class="filter-tab"        onclick="setTabFilter('progress')" id="tab-progress">Em Andamento</button>
+                <button class="filter-tab"        onclick="setTabFilter('done')"     id="tab-done">Concluídos</button>
+            </div>
+
+            <div class="toolbar-sep"></div>
+
+            <div class="date-filters">
+                <label>De</label>
+                <input type="date" class="date-input" id="filterDateFrom" onchange="renderTable()" style="color-scheme:dark;">
+                <button class="date-clear" onclick="clearDateFilter('from')">✕</button>
+                <label>Até</label>
+                <input type="date" class="date-input" id="filterDateTo" onchange="renderTable()" style="color-scheme:dark;">
+                <button class="date-clear" onclick="clearDateFilter('to')">✕</button>
+            </div>
+
+            <div class="toolbar-right">
+                <span>Exibindo <b id="visibleCount" style="color:var(--t2)">0</b> de <b id="totalCount" style="color:var(--t2)">0</b></span>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="cb-col no-sort"><input type="checkbox" id="selectAllCb" onchange="toggleSelectAll(this.checked)"></th>
+                        <th onclick="sortTable('status')">Status <span id="sort-status" class="sort-icon"></span></th>
+                        <th onclick="sortTable('po')">PO# <span id="sort-po" class="sort-icon"></span></th>
+                        <th onclick="sortTable('so')">SO# <span id="sort-so" class="sort-icon"></span></th>
+                        <th onclick="sortTable('rep')">Representante <span id="sort-rep" class="sort-icon"></span></th>
+                        <th>Conteúdo</th>
+                        <th class="no-sort">Arquivos</th>
+                        <th onclick="sortTable('createdAt')">Data <span id="sort-createdAt" class="sort-icon">▼</span></th>
+                        <th class="no-sort" style="text-align:right;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="notesTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal">
+        <div class="modal-icon"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+        <div class="modal-title">Apagar este pedido?</div>
+        <div class="modal-desc">Esta ação será permanente. Você terá 5 segundos para desfazer.</div>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+            <button class="btn btn-danger" id="btnConfirmDelete">Sim, apagar</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="app.js"></script>
+</body>
+</html>
